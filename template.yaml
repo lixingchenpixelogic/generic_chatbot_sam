@@ -108,7 +108,7 @@ Resources:
           map-migrated: !Ref MapMigrationTag
         Cors:
           AllowOrigin: "'*'"
-          AllowMethods: "'GET,POST'"
+          AllowMethods: "'GET,POST,PATCH'"
         OpenApiVersion: '2.0'
     
     GenericChatbotSecurityGroup:
@@ -235,6 +235,12 @@ Resources:
             Properties:
               Path: /lifecycleNotifications
               Method: GET
+              RestApiId: !Ref ApiGateway
+          NotificationPatch:    
+            Type: Api
+            Properties:
+              Path: /lifecycleNotifications
+              Method: PATCH
               RestApiId: !Ref ApiGateway
         VpcConfig:
           SecurityGroupIds:
