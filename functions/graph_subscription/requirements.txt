@@ -1,0 +1,3 @@
+setuptools
+azure-identity
+requests
