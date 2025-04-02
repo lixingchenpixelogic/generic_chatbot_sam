@@ -45,4 +45,22 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["RenewSubscriptionFunction"]
 
+[function_build_definitions.093afe9c-4d7c-459f-b547-d1095b663ac2]
+codeuri = "/home/pixelogic/generic-chatbot-sam/functions/lifecycle_handler"
+runtime = "python3.10"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["LifecycleHandlerFunction"]
+
+[function_build_definitions.02393919-ae5c-452d-b89d-1254b07ddb6b]
+codeuri = "/home/pixelogic/generic-chatbot-sam/functions/submit_to_queue"
+runtime = "python3.10"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["SubmitToQueueFunction"]
+
 [layer_build_definitions]

@@ -21,6 +21,5 @@ def get_secret(secret_name,region_name):
         raise e
 
     secret = json.loads(get_secret_value_response['SecretString'])
-    print('resret in get secret looks like',secret)
     # Your code goes here.
     return secret

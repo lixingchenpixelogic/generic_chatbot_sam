@@ -20,7 +20,7 @@ def handler(event,context):
         team_id = secret.get("team_id",None)
         channel_id = secret.get("channel_id",None)
 
-        expiration_datetime = (datetime.utcnow() + timedelta(minutes = 11)).isoformat() + 'Z'
+        expiration_datetime = (datetime.utcnow() + timedelta(minutes = 45)).isoformat() + 'Z'
         payload = {
             "changeType": "created,updated",
             "notificationUrl": notification_url,

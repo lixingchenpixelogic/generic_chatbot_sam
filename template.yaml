@@ -54,11 +54,6 @@ Resources:
             LifeCycle_URL:  !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/lifecycleNotifications"
         Role:
           !GetAtt LambdaFunctionRole.Arn
-        Events:
-          ScheduledRule:
-            Type: Schedule
-            Properties:
-              Schedule: rate(70 hours)
         VpcConfig:
           SecurityGroupIds:
               - !GetAtt GenericChatbotSecurityGroup.GroupId
@@ -79,6 +74,7 @@ Resources:
           Variables:
             Region: !Ref AWS::Region
             Secret_Name: !Sub "${SecretName}-${Environment}"
+            Submit_To_Queue_Function_Name: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:submit_to_queue
         Role: !GetAtt LambdaFunctionRole.Arn
         Events:
           NotificationPost:
@@ -97,6 +93,27 @@ Resources:
           SecurityGroupIds:
             - !GetAtt GenericChatbotSecurityGroup.GroupId
           SubnetIds: !Ref Subnet
+    
+    SubmitToQueueFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: submit_to_queue
+        CodeUri: functions/submit_to_queue/
+        Handler: app.handler
+        Runtime: python3.10
+        Architectures:
+          - x86_64
+        Timeout: 30  
+        Environment:
+          Variables:
+            Region: !Ref AWS::Region
+            Secret_Name: !Sub "${SecretName}-${Environment}"
+        Role: !GetAtt LambdaFunctionRole.Arn
+        VpcConfig:
+          SecurityGroupIds:
+            - !GetAtt GenericChatbotSecurityGroup.GroupId
+          SubnetIds: !Ref Subnet      
+     
 
     
     ApiGateway:
@@ -115,7 +132,7 @@ Resources:
       Type: AWS::EC2::SecurityGroup
       Properties: 
         GroupDescription: Security Group for Generic Chatbot lambda
-        GroupName: !Sub ${AWS::StackName}-sg
+        GroupName: !Sub ${AWS::StackName}-security-group
         VpcId: !Ref VpcId
       
       
@@ -140,6 +157,8 @@ Resources:
             - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole 
             - !Ref LogPolicy
             - !Ref SecretPolicy
+            - !Ref LambdaInvokePolicy
+
 
     SecretPolicy:
       Type: AWS::IAM::ManagedPolicy
@@ -169,7 +188,21 @@ Resources:
                 - logs:PutLogEvents
               Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}*
 
-    
+    LambdaInvokePolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        ManagedPolicyName: !Sub ${AWS::StackName}-${AWS::Region}-lambda-policy
+        Path: /
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: 
+                - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:renew_subscription
+                - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:graph_subscription
+                - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:submit_to_queue
 
     CheckSubscriptionFunction:
       Type: AWS::Serverless::Function
@@ -205,13 +238,12 @@ Resources:
             Secret_Name: !Sub "${SecretName}-${Environment}"
         Role:
           !GetAtt LambdaFunctionRole.Arn
-
-      
-    RenewSubscriptionFunction:
+    
+    LifecycleHandlerFunction:
       Type: AWS::Serverless::Function
       Properties:
-        FunctionName: renew_subscription
-        CodeUri: functions/renew_subscription/
+        FunctionName: lifecycle_handler
+        CodeUri: functions/lifecycle_handler/
         Handler: app.handler
         Runtime: python3.10
         Architectures:
@@ -221,8 +253,8 @@ Resources:
           Variables:
             Region: !Ref AWS::Region
             Secret_Name: !Sub "${SecretName}-${Environment}"
-        Role:
-          !GetAtt LambdaFunctionRole.Arn
+            Renew_Function_Name: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:renew_subscription
+        Role: !GetAtt LambdaFunctionRole.Arn
         Events:
           NotificationPost:
             Type: Api
@@ -244,5 +276,26 @@ Resources:
               RestApiId: !Ref ApiGateway
         VpcConfig:
           SecurityGroupIds:
-              - !GetAtt GenericChatbotSecurityGroup.GroupId
+            - !GetAtt GenericChatbotSecurityGroup.GroupId
           SubnetIds: !Ref Subnet
+
+    RenewSubscriptionFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: renew_subscription
+        CodeUri: functions/renew_subscription/
+        Handler: app.handler
+        Runtime: python3.10
+        Architectures:
+          - x86_64
+        Timeout: 30  
+        Environment:
+          Variables:
+            Region: !Ref AWS::Region
+            Secret_Name: !Sub "${SecretName}-${Environment}"
+            New_Subscription_Name: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:graph_subscription
+        Role: !GetAtt LambdaFunctionRole.Arn
+        VpcConfig:
+          SecurityGroupIds:
+            - !GetAtt GenericChatbotSecurityGroup.GroupId
+          SubnetIds: !Ref Subnet      
